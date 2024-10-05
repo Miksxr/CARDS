@@ -31,6 +31,10 @@ class GameViewModel @Inject constructor(
             val player1 = Player(id = 1, name = "Player 1", deck = player1Deck)
             val player2 = Player(id = 2, name = "Player 2", deck = player2Deck)
 
+            // Раздача по 5 случайных карт каждому игроку
+            player1.hand.addAll(player1.deck.shuffled().take(5))
+            player2.hand.addAll(player2.deck.shuffled().take(5))
+
             val board = List(5) { x -> List(5) { y -> Cell(x, y) } } // 5x5 поле
 
             _gameState.value = GameState(
@@ -41,20 +45,27 @@ class GameViewModel @Inject constructor(
         }
     }
 
+
     // Логика выложить карту на доску
     fun placeCardOnBoard(card: Card, x: Int, y: Int) {
         val currentState = _gameState.value ?: return
-
         val currentPlayer = currentState.currentPlayer
 
         if (currentPlayer.mana >= card.cost && currentState.board[x][y].card == null) {
             currentState.board[x][y].card = card
             currentPlayer.mana -= card.cost
             currentPlayer.hand.remove(card)
+
+            // После размещения карты добавляем новую карту
+            val newCard = currentPlayer.deck.shuffled().firstOrNull() // Берем новую карту из колоды
+            if (newCard != null) {
+                currentPlayer.hand.add(newCard) // Добавляем новую карту в руку
+            }
         }
 
         _gameState.value = currentState
     }
+
 
     // Передача хода и добавление маны
     fun endTurn() {
