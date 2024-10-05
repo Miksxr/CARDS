@@ -91,16 +91,32 @@ class GameViewModel @Inject constructor(
     fun attackCard(attackerCard: Card, targetCard: Card) {
         val currentState = _gameState.value ?: return
 
-        // Уменьшение здоровья у цели
-        targetCard.health -= attackerCard.attack
+        // Проверка на соседние клетки
+        val attackerCell = currentState.board.flatten().firstOrNull { it.card == attackerCard }
+        val targetCell = currentState.board.flatten().firstOrNull { it.card == targetCard }
 
-        // Если здоровье цели <= 0, удаляем её с поля
-        if (targetCard.health <= 0) {
-            currentState.board.flatten().firstOrNull { it.card == targetCard }?.card = null
+        if (attackerCell != null && targetCell != null &&
+            areCellsAdjacent(attackerCell, targetCell)
+        ) {
+            // Уменьшение здоровья у цели
+            targetCard.health -= attackerCard.attack
+
+            // Если здоровье цели <= 0, удаляем её с поля
+            if (targetCard.health <= 0) {
+                currentState.board.flatten().firstOrNull { it.card == targetCard }?.card = null
+            }
+
+            _gameState.value = currentState
         }
-
-        _gameState.value = currentState
     }
+
+    // Проверка, являются ли клетки соседними
+    private fun areCellsAdjacent(cell1: Cell, cell2: Cell): Boolean {
+        val dx = kotlin.math.abs(cell1.x - cell2.x)
+        val dy =kotlin.math.abs(cell1.y - cell2.y)
+        return (dx == 1 && dy == 0) || (dx == 0 && dy == 1)
+    }
+
 
     // Проверка победителя
     fun checkVictory(): Player? {
