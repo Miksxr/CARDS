@@ -32,9 +32,7 @@ import com.example.cards.dataclass.Card
 @Composable
 fun GameScreen(viewModel: GameViewModel) {
     val gameState by viewModel.gameState.collectAsState()
-    var showPlacementDialog by remember { mutableStateOf(false) }
     var selectedCard by remember { mutableStateOf<Card?>(null) }
-    var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     gameState?.let { state ->
         Column(
@@ -51,38 +49,53 @@ fun GameScreen(viewModel: GameViewModel) {
                 text = "Мана: ${state.currentPlayer.mana}"
             )
 
+            // Карты в руке игрока
             LazyRow(modifier = Modifier.padding(8.dp)) {
                 items(state.currentPlayer.hand) { card ->
-                    CardView(card = card) {
-                        selectedCard = card
-                        showPlacementDialog = true
+                    // Карты в руке (не на доске)
+                    CardView(card = card, onClick = {
+                        selectedCard = card // Выбор карты
+                        Log.d("GameScreen", "Selected Card: $selectedCard")
+                    }, isOnBoard = false) // Передаем параметр isOnBoard = false
+                }
+            }
+
+            // Игровое поле
+            GameBoard(
+                gameState = state,
+                selectedCard = selectedCard,
+                onCardClick = { cell, card ->
+                    // Обработка клика по карте
+                },
+                onDropCard = { card, x, y ->
+                    if (selectedCard != null && selectedCard == card) {
+                        val isWithinPlayerArea = (state.currentPlayer.id == 1 && x >= 3) || (state.currentPlayer.id == 2 && x < 2)
+                        if (isWithinPlayerArea) {
+                            viewModel.placeCardOnBoard(selectedCard!!, x, y, state.currentPlayer.id)
+                            Log.d("GameScreen", "Placed Card: $selectedCard at x=$x, y=$y")
+                            selectedCard = null
+                        }
+                    }
+                },
+                onMoveCard = { card, x, y ->
+                    val currentCell = state.board.flatten().firstOrNull { it.card == card }
+                    if (currentCell != null) {
+                        val moveSpeed = card.moveSpeed
+                        val currentX = currentCell.x
+                        val currentY = currentCell.y
+
+                        // Проверяем, что перемещение находится в пределах moveSpeed
+                        if (kotlin.math.abs(currentX - x) + kotlin.math.abs(currentY - y) <= moveSpeed) {
+                            viewModel.moveCard(card, x, y)
+                            Log.d("GameScreen", "Moved Card: ${card.name} to ($x, $y)")
+                        } else {
+                            Log.d("GameScreen", "Invalid move for card: ${card.name}. Move speed: $moveSpeed")
+                        }
+                    } else {
+                        Log.d("GameScreen", "Card not found on board.")
                     }
                 }
-            }
-
-            GameBoard(gameState = state) { cell, card ->
-                if (selectedCard != null && selectedCard?.moveSpeed != 0) {
-                    viewModel.attackCard(attackerCard = selectedCard!!, targetCard = card)
-                    selectedCard = null
-                } else {
-                    selectedCard = card
-                    selectedCell = Pair(cell.x, cell.y)
-                    showPlacementDialog = true
-                }
-            }
-
-            if (showPlacementDialog && selectedCard != null) {
-                PlacementDialog(
-                    onDismiss = { showPlacementDialog = false },
-                    onConfirm = { x, y ->
-                        viewModel.placeCardOnBoard(selectedCard!!, x, y)
-                        selectedCard = null
-                        selectedCell = null
-                        showPlacementDialog = false
-                    },
-                    selectedCell = selectedCell
-                )
-            }
+            )
 
             Button(
                 onClick = { viewModel.endTurn() },
@@ -100,38 +113,5 @@ fun GameScreen(viewModel: GameViewModel) {
     }
 }
 
-@Composable
-fun PlacementDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (Int, Int) -> Unit,
-    selectedCell: Pair<Int, Int>?
-) {
-    var x by remember { mutableStateOf(selectedCell?.first ?: 0) }
-    var y by remember { mutableStateOf(selectedCell?.second ?: 0) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Выберите клетку") },
-        text = {
-            Column {
-                Row {
-                    Text("X:")
-                    TextField(value = x.toString(), onValueChange = { x = it.toIntOrNull() ?: 0 })
-                }
-                Row {
-                    Text("Y:")
-                    TextField(value = y.toString(), onValueChange = { y = it.toIntOrNull() ?: 0 })}
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(x, y) }) {
-                Text("Подтвердить")
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Отмена")
-            }
-        }
-    )
-}
+

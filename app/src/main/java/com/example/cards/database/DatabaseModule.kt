@@ -12,26 +12,26 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-@Module
-@InstallIn(SingletonComponent::class) // Глобальный скоуп для приложения
-object DatabaseModule {
-
-    @Provides
-    @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): GameDatabase {
-        return GameDatabase.getDatabase(context)
-    }
-
-    @Provides
-    fun provideCardDao(database: GameDatabase): CardDao {
-        return database.cardDao()
-    }
-
-    @Provides
-    fun provideRepository(@ApplicationContext context: Context,
-                          dao: CardDao) : GameRepository {
-        return GameRepository(context, dao)
-    }
-}
+//@Module
+//@InstallIn(SingletonComponent::class) // Глобальный скоуп для приложения
+//object DatabaseModule {
+//
+//    @Provides
+//    @Singleton
+//    fun provideDatabase(@ApplicationContext context: Context): GameDatabase {
+//        return GameDatabase.getDatabase(context)
+//    }
+//
+//    @Provides
+//    fun provideCardDao(database: GameDatabase): CardDao {
+//        return database.cardDao()
+//    }
+//
+//    @Provides
+//    fun provideRepository(@ApplicationContext context: Context,
+//                          dao: CardDao) : GameRepository {
+//        return GameRepository(context, dao)
+//    }
+//}
 
 

@@ -4,9 +4,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 
-@Entity(tableName = "cards")
 data class Card(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val ownerId: Int? = null,
     val name: String,
     val attack: Int,
     var health: Int, // Изменяемое поле здоровья

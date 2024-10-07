@@ -15,10 +15,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@HiltViewModel
-class GameViewModel @Inject constructor(
-    private val repository: GameRepository
-) : ViewModel() {
+class GameViewModel : ViewModel() {
+    private val repository = GameRepository() // Создаем экземпляр репозитория
 
     private val _gameState = MutableStateFlow<GameState?>(null)
     val gameState: StateFlow<GameState?> = _gameState.asStateFlow()
@@ -26,9 +24,9 @@ class GameViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val allCards = repository.loadCards()
-            Log.d("LOG", allCards.toString())
-            val player1Deck = allCards.shuffled().take(10).toMutableList() // Колода игрока 1
-            val player2Deck = allCards.shuffled().take(10).toMutableList() // Колода игрока 2
+
+            val player1Deck = allCards.shuffled().take(10).map { it.copy(ownerId = 1) }.toMutableList() // Колода игрока 1
+            val player2Deck = allCards.shuffled().take(10).map { it.copy(ownerId = 2) }.toMutableList() // Колода игрока 2
 
             val player1 = Player(id = 1, name = "Player 1", deck = player1Deck)
             val player2 = Player(id = 2, name = "Player 2", deck = player2Deck)
@@ -37,7 +35,7 @@ class GameViewModel @Inject constructor(
             player1.hand.addAll(player1.deck.shuffled().take(5))
             player2.hand.addAll(player2.deck.shuffled().take(5))
 
-            val board = List(5) { x -> List(5) { y -> Cell(x, y) } } // 5x5 поле
+            val board = List(5) { x -> List(5) { y -> Cell(x, y) } }
 
             _gameState.value = GameState(
                 currentPlayer = player1,
@@ -47,27 +45,57 @@ class GameViewModel @Inject constructor(
         }
     }
 
+    fun moveCard(card: Card, newX: Int, newY: Int) {
+        val currentState = _gameState.value ?: return  // Если null, выходим из функции
+        val currentPosition = currentState.board.flatten().firstOrNull { it.card == card }
+
+        // Добавьте логи
+        Log.d("GameScreen", "Trying to move card: ${card.name} from (${currentPosition?.x}, ${currentPosition?.y}) to ($newX, $newY)")
+
+        // Если карта найдена и новая позиция допустима
+        if (currentPosition != null && isValidMove(currentPosition.x, currentPosition.y, newX, newY, card.moveSpeed)) {
+            // Удаляем карту из текущей клетки
+            currentPosition.card = null
+
+            // Устанавливаем карту в новую клетку
+            val newCell = currentState.board[newX][newY]
+            newCell.card = card
+
+            // Обновляем состояние игры
+            _gameState.value = currentState.copy(board = currentState.board)
+            Log.d("GameScreen", "Moved card: ${card.name} to new position ($newX, $newY)")
+        } else {
+            Log.d("GameScreen", "Move not valid for card: ${card.name}. Current position: ${currentPosition}, New position: ($newX, $newY)")
+        }
+    }
+
+    private fun isValidMove(currentX: Int, currentY: Int, newX: Int, newY: Int, moveSpeed: Int): Boolean {
+        val isWithinBoard = newX in 0 until 5 && newY in 0 until 5 // Убедитесь, что новая позиция в пределах поля
+        val isWithinMoveSpeed = (kotlin.math.abs(currentX - newX) + kotlin.math.abs(currentY - newY) <= moveSpeed)
+        return isWithinBoard && isWithinMoveSpeed
+    }
 
     // Логика выложить карту на доску
-    fun placeCardOnBoard(card: Card, x: Int, y: Int) {
+    fun placeCardOnBoard(card: Card, x: Int, y: Int, playerId: Int) {
         val currentState = _gameState.value ?: return
         val currentPlayer = currentState.currentPlayer
 
         if (currentPlayer.mana >= card.cost && currentState.board[x][y].card == null) {
             currentState.board[x][y].card = card
+            currentState.board[x][y].ownerId = playerId // Сохраняем ID владельца карты
             currentPlayer.mana -= card.cost
             currentPlayer.hand.remove(card)
 
             // После размещения карты добавляем новую карту
-            val newCard = currentPlayer.deck.shuffled().firstOrNull() // Берем новую карту из колоды
+            val newCard = currentPlayer.deck.shuffled().firstOrNull()
             if (newCard != null) {
-                currentPlayer.hand.add(newCard) // Добавляем новую карту в руку
+                currentPlayer.hand.add(newCard)
             }
+
+            // Обновляем состояние игры
+            _gameState.value = currentState
         }
-
-        _gameState.value = currentState
     }
-
 
     // Передача хода и добавление маны
     fun endTurn() {
@@ -115,10 +143,9 @@ class GameViewModel @Inject constructor(
     // Проверка, являются ли клетки соседними
     private fun areCellsAdjacent(cell1: Cell, cell2: Cell): Boolean {
         val dx = kotlin.math.abs(cell1.x - cell2.x)
-        val dy =kotlin.math.abs(cell1.y - cell2.y)
+        val dy = kotlin.math.abs(cell1.y - cell2.y)
         return (dx == 1 && dy == 0) || (dx == 0 && dy == 1)
     }
-
 
     // Проверка победителя
     fun checkVictory(): Player? {
