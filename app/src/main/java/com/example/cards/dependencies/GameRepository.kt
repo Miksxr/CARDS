@@ -12,6 +12,7 @@ class GameRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val cardDao: CardDao
 ) {
+
     suspend fun loadCards(): List<Card> {
         return cardDao.getAllCards() // Загрузка всех карт из базы данных
     }

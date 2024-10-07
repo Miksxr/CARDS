@@ -1,5 +1,6 @@
 package com.example.cards
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.cards.dataclass.Card
@@ -25,6 +26,7 @@ class GameViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val allCards = repository.loadCards()
+            Log.d("LOG", allCards.toString())
             val player1Deck = allCards.shuffled().take(10).toMutableList() // Колода игрока 1
             val player2Deck = allCards.shuffled().take(10).toMutableList() // Колода игрока 2
 
