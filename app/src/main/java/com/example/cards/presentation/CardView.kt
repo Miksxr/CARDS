@@ -1,4 +1,4 @@
-package com.example.cards.ui
+package com.example.cards.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cards.R
 import com.example.cards.dataclass.Card
-import com.example.cards.dataclass.Player
 
 @Composable
 fun CardView(card: Card, onClick: () -> Unit, isOnBoard: Boolean) {

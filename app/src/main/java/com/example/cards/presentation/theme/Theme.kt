@@ -1,6 +1,5 @@
-package com.example.cards.ui.theme
+package com.example.cards.presentation.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
